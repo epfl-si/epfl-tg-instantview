@@ -1,0 +1,135 @@
+#
+# This Instant View Template will match EPFL (https://www.epfl.ch) websites.
+# If you're unsure what some of the elements used here do, check out the full
+# documentation here: https://instantview.telegram.org/docs
+#
+# Version:      1.0.0
+# Date:         2021-12-01
+# Author:       EPFL IDEV-FSD
+# Author URI:   https://go.epfl.ch/idev-fsd
+# Contributors: Nicolas Borboën <ponsfrilus@gmail.com>
+#
+# Test URLS:
+#   - https://www.epfl.ch
+#   - https://www.epfl.ch/en/
+#   - https://actu.epfl.ch/news/artificial-intelligence-helps-speed-up-ecological-/
+#   - https://news.epfl.ch/news/artificial-intelligence-helps-speed-up-ecological-/
+#
+#
+#
+#                     This is a Work In Progress
+#
+# @ToDos
+#  - link preview are buggy
+#  - news/actu image cover are missing
+#  - fallbacks have to be improved
+#  - Author / Date information missing
+#  - Insert the EPFL logo
+#  - @EPFL telegram channel would be nice too
+#
+
+
+# Use the latest Instant View version
+~version: "2.1"
+
+$head: /html/head
+$meta: $head/meta
+
+################################################################################
+#                                                                              #
+#                                www.epfl.ch                                   #
+#                                                                              #
+################################################################################
+# The following rules will only apply on the EPFL's home page, that can be
+# accessed on www.epfl.ch/ www.epfl.ch/en www.epfl.ch/en/ or other languages.
+?domain: (www\.)?epfl\.ch # domain epfl.ch or www.epfl.ch only
+!path: /(en|fr|de)?/?     # with possible languages (no need to escape the slashes)
+!exists: //div[has-class("fullwidth-teaser-title")]//h3 # and must contains a H3 in the div with class "fullwidth-teaser-title"
+
+# To make things easier, we'll begin by storing the actual body of the post in
+# a *variable* before we start our manipulations.
+$main: //div[has-class("fullwidth-teaser")]
+
+### Article base
+# The 'title' and 'body' *properties* are required for an Instant View page to
+# work, so we'll define those two.
+title: $main//div[has-class("fullwidth-teaser-title")]//h3
+body: $main//div[has-class("fullwidth-teaser-content")]
+# While we're at it, we'll move the signature to the top of the page.
+# Note that the EPFL's home page has no microformat or additional data-attributes
+# that one could use to know the main "news" date or author.
+# @TODO: add author(s) and date in the home page.
+author: "EPFL"
+
+### Article breadcrumb / kicker
+$tags: $main//ul[has-class("list-inline")]//li
+@combine(" › "): $main//ul[has-class("list-inline")]//li
+kicker: $tags
+@prepend("EPFL › ")
+
+### Article cover image
+$images: //picture//img
+cover: //picture//img
+# If we didn't find a cover, we'll take a picture from the meta tags.
+# Otherwise, the link preview will just have text in it, which is also OK.
+image_url: //head/meta[@property="og:image"]/@content
+
+### Article read more link
+$readmore: //a[has-class("triangle-outer-top-right")]
+@remove: //svg
+@remove: //a//span[has-class("sr-only")]
+@append_to($body): $readmore
+
+### Clean up
+@debug: $body
+@remove: //header
+@remove: //footer
+
+### Link preview
+# A short description (used in link preview)
+# What's the max length?
+description: $main//div[has-class("fullwidth-teaser-content")]
+# Link preview photo (used in link preview)
+# Use the open graph information
+image_url: //head//meta[@property="og:image"]//@content
+# Link preview document (used in link preview)
+# As the CMS is WordPress, the link rel canonical is set, e.g.
+# <link rel="canonical" href="https://www.epfl.ch/en/" />
+document_url: //head//link[@rel="canonical"]//@href
+# String Name of website (used in link preview)
+site_name: "EPFL"
+
+
+################################################################################
+#                                                                              #
+#                        news.epfl.ch / actu.epfl.ch                           #
+#                                                                              #
+################################################################################
+# Rule for actu.epfl.ch/news/some-article, not the news's home page
+?domain: (actu\.epfl\.ch|news.epfl.ch) # actu.epfl.ch or news.epfl.ch
+!path: /news/.+                        # and with the path /news/...
+
+$main: //main[has-class("content")]
+title: $main//h1[@itemprop="name headline"]
+$lead: $main//p[has-class("lead")]
+author: "EPFL"
+body: $lead
+content: $main//div[@itemprop="description"]
+@append_to($body)
+author: "EPFL"
+
+### Link preview
+# A short description (used in link preview)
+# What's the max length?
+description: //main[has-class("content")]//p[has-class("lead")]
+@debug: $description
+# Link preview photo (used in link preview)
+# Use the open graph information
+image_url: $main//figure//picture//img[@itemprop="image"]//@src
+@debug: $image_url
+# Link preview document (used in link preview)
+# As the CMS is WordPress, the link rel canonical is set, e.g.
+# <link rel="canonical" href="https://www.epfl.ch/en/" />
+document_url: //head/link[@rel="canonical"]/@href
+# String Name of website (used in link preview)
+site_name: "EPFL"
