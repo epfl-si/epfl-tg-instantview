@@ -1,0 +1,43 @@
+#
+# This Instant View Template will match EPFL "news" website, responding to
+# https://actu.epfl.ch, https://actus.epfl.ch and https://news.epfl.ch
+#
+# Version:      1.0.0
+# Date:         2023-01-25
+# Author:       EPFL IDEV-FSD
+# Author URI:   https://go.epfl.ch/idev-fsd
+# Contributors:
+#               Nicolas Borboën <nicolas.borboen@epfl.ch>
+#               William Belle <william.belle@epfl.ch>
+#               Sami Panseri <sami.panseri@epfl.ch>
+#               Leonardo Surdez <leonardo.surdez@epfl.ch>
+#
+
+# Use the latest Instant View version
+~version: "2.1"
+
+# Rule for actu.epfl.ch/news/some-article, not the news's home page
+?domain: (actu\.epfl\.ch|news\.epfl\.ch) # actu.epfl.ch or news.epfl.ch
+!path:   /news/.+                        # and with the path /news/...
+
+body:     //main
+title:    //head/meta[@property="og:title"]/@content
+# subtitle -- nothing seems to fit here
+# kicker: //head/meta[@property="og:description"]/@content -- already managed
+# author: //head/meta[@property="og:author"]/@content -- already managed
+author_url: $body//small[@itemprop="author publisher"]/a/@href
+# published_date -- already managed
+description: //head/meta[@property="og:description"]/@content
+# image_url  -- already managed
+# document_url: //head/meta[@property="og:url"]/@content
+
+
+# Set the site name in the link preview
+site_name: //link[@rel="canonical"]/@href
+@replace("//", ""): $site_name
+@replace("/.*", ""): $site_name
+
+# Remove the duplicate title
+@remove: //main//h1
+
+@remove: $body//time[@itemprop="datePublished"]
